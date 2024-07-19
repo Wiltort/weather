@@ -1,0 +1,113 @@
+{% extends "base.html" %} {% block content %}
+<div class="nav">
+  Прогноз погоды:
+  <a href="{{ url_for('main.index') }}">Home</a>
+  {% if current_user.is_anonymous %}
+  <button id="loginButton">Вход</button>
+  {% else %}
+  <a href="{{ url_for('main.logout') }}">Выход</a>
+  {% endif %}
+</div>
+
+<div class="login-form" id="loginForm">
+  <form action="" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <h2>Вход</h2>
+    <p>
+      {{ form.username.label }}<br />
+      {{ form.username(size=32) }}<br />
+      {% for error in form.username.errors %}
+      <span style="color: red">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p class="input">
+      {{ form.password.label }}<br />
+      {{ form.password(size=32) }}<br />
+      {% for error in form.password.errors %}
+      <span style="color: red">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
+    <button>{{ form.submit() }}</button>
+  </form>
+</div>
+<div class="container">
+  <form action="" method="post" novalidate>
+    {{ city_form.hidden_tag() }}
+    <h1>Введите город</h1>
+    <p id="cityInput">
+      {{ city_form.name.label }}<br />
+      {{ city_form.name(size=32) }}<br />
+      {% for error in city_form.name.errors %}
+      <span style="color: red">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+
+    <p id="okButton">{{ city_form.submit() }}</p>
+  </form>
+</div>
+{% if city %}
+<div class="weather">
+  <h1>Погода в: {{ city }}</h1>
+  <div id="chart"></div>
+  <script>
+    // Данные из DataFrame pandas
+    var data = {{ temp_data|tojson }};
+    var dates = [];
+    var temperatures = [];
+    for (var i = 0; i < data.length; i++) {
+        dates.push(data[i].date);
+        temperatures.push(data[i].temperature_2m);
+    }
+    // Настройка графика
+    var trace = {
+        x: dates,
+        y: temperatures,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Температура'
+    };
+
+    // Создание графика
+    var layout = {
+        title: 'График Температуры',
+        xaxis: {
+            title: 'Дата'
+        },
+        yaxis: {
+            title: 'Температура (°C)'
+        }
+    };
+
+    Plotly.newPlot('chart', [trace], layout);
+  </script>
+  <table>
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Погода</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in weather_data.itertuples() %}
+      <tr>
+        <td>{{ row.date }}</td>
+        <td>
+          <span
+            class="weather-icon"
+            style="background-image: url('https://openweathermap.org/img/wn/{{ row.weather_icon }}@2x.png');"
+          ></span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<script>
+  const loginButton = document.getElementById("loginButton");
+  loginButton.addEventListener("click", () => {
+    loginForm.style.display = "block"; // Показать форму входа
+  });
+</script>
+{% endif %} {% endblock %}
