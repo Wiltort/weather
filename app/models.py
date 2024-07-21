@@ -18,17 +18,18 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return "<User {}>".format(self.username)
-    
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-    
+
     def get_token(self, expires_in=3600):
         now = datetime.now(timezone.utc)
         if self.token and self.token_expiration.replace(
-                tzinfo=timezone.utc) > now + timedelta(seconds=60):
+            tzinfo=timezone.utc
+        ) > now + timedelta(seconds=60):
             return self.token
         self.token = secrets.token_hex(16)
         self.token_expiration = now + timedelta(seconds=expires_in)
@@ -36,17 +37,16 @@ class User(UserMixin, db.Model):
         return self.token
 
     def revoke_token(self):
-        self.token_expiration = datetime.now(timezone.utc) - timedelta(
-            seconds=1)
+        self.token_expiration = datetime.now(timezone.utc) - timedelta(seconds=1)
 
     @staticmethod
     def check_token(token):
         user = db.session.scalar(sa.select(User).where(User.token == token))
         if user is None or user.token_expiration.replace(
-                tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            tzinfo=timezone.utc
+        ) < datetime.now(timezone.utc):
             return None
         return user
-
 
 
 class City(db.Model):
@@ -58,19 +58,19 @@ class City(db.Model):
 
     def __repr__(self):
         return f"<City {self.name}>"
-    
+
     def number_of_requests(self):
-        query = sa.select(sa.func.count()).select_from(self.forecast_requests.select().subquery())
+        query = sa.select(sa.func.count()).select_from(
+            self.forecast_requests.select().subquery()
+        )
         return db.session.scalar(query)
-    
+
     def to_dict(self):
         data = {
-            'id': self.id,
-            'name': self.name,
-            'number_of_requests': self.number_of_requests()
+            "id": self.id,
+            "name": self.name,
+            "number_of_requests": self.number_of_requests(),
         }
-    
-
 
 
 class Forecast_request(db.Model):
@@ -86,6 +86,7 @@ class Forecast_request(db.Model):
     def __repr__(self):
         return f"<Forecast_request from {self.from_user} at {self.city}. Created at {self.timestamp}"
 
+
 @login.user_loader
 def load_user(id):
-  return db.session.get(User, int(id))
+    return db.session.get(User, int(id))
