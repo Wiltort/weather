@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
@@ -6,6 +6,8 @@ from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import login
+import base64
+import os
 
 
 class User(UserMixin, db.Model):
@@ -15,6 +17,8 @@ class User(UserMixin, db.Model):
     forecast_requests: so.WriteOnlyMapped["Forecast_request"] = so.relationship(
         back_populates="from_user"
     )
+    token = db.Column(db.String(32), index=True, unique=True)
+    token_expiration = db.Column(db.DateTime)
 
     def __repr__(self):
         return "<User {}>".format(self.username)
@@ -31,7 +35,7 @@ class User(UserMixin, db.Model):
             tzinfo=timezone.utc
         ) > now + timedelta(seconds=60):
             return self.token
-        self.token = secrets.token_hex(16)
+        self.token = base64.b64encode(os.urandom(24)).decode('utf-8')
         self.token_expiration = now + timedelta(seconds=expires_in)
         db.session.add(self)
         return self.token
@@ -59,18 +63,13 @@ class City(db.Model):
     def __repr__(self):
         return f"<City {self.name}>"
 
-    def number_of_requests(self):
-        query = sa.select(sa.func.count()).select_from(
-            self.forecast_requests.select().subquery()
-        )
-        return db.session.scalar(query)
-
     def to_dict(self):
         data = {
             "id": self.id,
             "name": self.name,
-            "number_of_requests": self.number_of_requests(),
+            "number_of_requests": number_of_requests(self.id),
         }
+        return data
 
 
 class Forecast_request(db.Model):
@@ -90,3 +89,7 @@ class Forecast_request(db.Model):
 @login.user_loader
 def load_user(id):
     return db.session.get(User, int(id))
+
+def number_of_requests(c):
+    query = Forecast_request.query.filter(Forecast_request.city_id==c).count()
+    return query

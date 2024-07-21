@@ -83,7 +83,6 @@ def get_weather(coordinates):
         ).strftime("%d.%m.%Y")
     }
     daily_data["weather_code"] = daily_weather_code
-    print(daily_weather_code)
     daily_icon = []
     for item in daily_weather_code:
         if item == 0:
